@@ -73,3 +73,54 @@ It would be cool to have a teraform file or some kind of automated deployment fo
 - This can be one giant json file actually
 
 TBH most of the rest is stored on the zero-tier network manager server
+
+## TLDR from zero-tier docs for self hosting network managers
+
+https://docs.zerotier.com/self-hosting/network-controllers
+
+**Get your API token:**
+```
+TOKEN=$(sudo cat /var/lib/zerotier-one/authtoken.secret)
+```
+
+**Get your local Node ID**
+```
+NODEID=$(sudo zerotier-cli info | cut -d " " -f 3)
+```
+
+**Create a new network:**
+```
+curl -X POST "http://localhost:9993/controller/network/${NODEID}______" -H "X-ZT1-AUTH: ${TOKEN}" -d {}
+```
+
+**Set active network ID to the ID returned in the above query:**
+```
+NWID=your-network-id
+```
+
+**List network members:**
+```
+curl "http://localhost:9993/controller/network/${NWID}/member" -H "X-ZT1-AUTH: ${TOKEN}" 
+```
+
+**To target specific member, get their ID from that list:**
+```
+MEMID=a-member's-node-id
+```
+
+**To join the network (run locally):**
+```
+sudo zerotier-cli join ${NWID}
+```
+
+**To authorize a newly joined member:**
+```
+curl -X POST "http://localhost:9993/controller/network/${NWID}/member/${MEMID}" -H "X-ZT1-AUTH: ${TOKEN}" -d '{"authorized": true}'
+```
+
+**To delete all networks:**
+```
+sudo systemctl stop zerotier-one
+sudo rm -rf /var/lib/zerotier-one/controller.d
+sudo systemctl start zerotier-one
+```

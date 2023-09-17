@@ -21,31 +21,43 @@ def create_new_network(log):
     global local_ip, network_id, token, local_id
 
     # Collects information about local zerotier instance
-    token = subprocess.check_output('sudo cat /var/lib/zerotier-one/authtoken.secret', shell=True, text=True).strip()
-    local_id = subprocess.check_output('sudo bin/zerotier-cli info | cut -d " " -f 3', shell=True, text=True).strip()
+    os.environ['TOKEN'] = subprocess.check_output('sudo cat /var/lib/zerotier-one/authtoken.secret', shell=True, text=True).strip()
+    os.environ['NODEID'] = subprocess.check_output('sudo bin/zerotier-cli info | cut -d " " -f 3', shell=True, text=True).strip()
+
+    #print('DEBUG:')
+    #print(f'token: {token}')
+    #print(f'local_id: {local_id}')
 
     # Create new network using local server
-    url = f'http://localhost:9993/controllers/network/{local_id}______'
     headers = {
-        "X-ZT1-AUTH": token,
-        "Content-Type": "application/json"
+        'X-ZT1-AUTH': os.getenv('TOKEN', ''),
+        'Content-Type': 'application/x-www-form-urlencoded',
     }
-    data = {}
-    response = requests.post(url, headers=headers, json=data)
+    data = '{}'
+    response = requests.post(
+        'http://localhost:9993/controller/network/' + os.getenv('NODEID', '') + '______',
+        headers=headers,
+        data=data,
+    )
+
+    print('DEBUG:')
+    #print(f'URL: {url}')
+    print(f'data: {data}')
+    print(f'response: {response}, {response.text}')
 
     d = json.loads(response.text)
     
     # This is what any node joining the network needs to have
-    network_id = d.get('id')
+    os.environ['NWID'] = d.get('id')
 
     # TODO actually see if it succeeded
-    log.print_success(f'Network created with network ID {network_id}')
+    log.print_success(f'Network created with network ID {os.environ["NWID"]}')
 
     # Join network
-    subprocess.run(f'sudo bin/zerotier-cli join {network_id}', shell=True, text=True)
+    subprocess.run(f'sudo bin/zerotier-cli join {os.environ["NWID"]}', shell=True, text=True)
 
     # TODO validate success
-    log.print_success(f'Joined locally to network {network_id}')
+    log.print_general(f'Attempted to join locally to network {os.environ["NWID"]}')
 
 
     # Create routes and IP range for new network
@@ -62,8 +74,13 @@ def create_new_network(log):
 
     args = [ip_range, ip_start, ip_end]
 
+    ## Continue with python to curl changes with OS environment variables
 
-    url = f'http://localhost:9993/controller/network/{network_id}'
+    headers = {
+    'X-ZT1-AUTH': os.getenv('TOKEN', ''),
+    'Content-Type': 'application/x-www-form-urlencoded',
+    }
+
     payload = {
         "ipAssignmentPools": [{"ipRangeStart": ip_start, "ipRangeEnd": ip_end}],
         "routes": [{"target": ip_range, "via": None}],
@@ -71,17 +88,40 @@ def create_new_network(log):
         "private": True
     }
 
-    response = requests.post(url, headers=headers, json=payload)
-    log.print_success(f'Set arguments {args} for network {network_id}')
+    response = requests.post('http://localhost:9993/controller/network/' + os.getenv('NWID', ''), headers=headers, json=payload)
+    #log.print_success(f'Set arguments {args} for network {network_id}')x
+
+    print('DEBUG:')
+    print(f'response: {response}, {response.text}')
 
     # Authenticate self to network
 
-    url = f'http://localhost:9993/controller/network/{network_id}/member/{local_id}'
-    payload = {
-        'authorized': True
+    # New
+
+    headers = {
+    'X-ZT1-AUTH': os.getenv('TOKEN', ''),
+    'Content-Type': 'application/x-www-form-urlencoded',
     }
-    response = requests.post(url, headers=headers, json=payload)
-    log.print_general(response.text)
+
+    data = '{"authorized": true}'
+
+    response = requests.post(
+        'http://localhost:9993/controller/network/' + os.getenv('NWID', '') + '/member/' + os.getenv('NODEID', ''),
+        headers=headers,
+        data=data
+    )
+
+    print('DEBUG:')
+    print(f'response: {response}, {response.text}')
+
+    # Old
+
+    # url = f'http://localhost:9993/controller/network/{network_id}/member/{local_id}'
+    # payload = {
+    #     'authorized': True
+    # }
+    # response = requests.post(url, headers=headers, json=payload)
+    # log.print_general(response.text)
 
 
 
