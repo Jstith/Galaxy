@@ -104,7 +104,7 @@ with open('prod/msf-settings.rc', 'w') as f:
     f.write('set LPORT 1337\n')
     f.write('exploit\n')
 log.print_general('Metasploit configuration written to prod/msf-settings.rc')
-log.success('Launch metasploit in a new window:\t"msfconsole -r prod/msf-settings.rc"')
+log.print_success('Launch metasploit in a new window:\t"msfconsole -r prod/msf-settings.rc"')
 
 # Start trying to authorize new members
 
