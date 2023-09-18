@@ -95,8 +95,8 @@ script = open('scripts/martian_template.sh').readlines()
 
 with open('prod/martian.sh', 'w') as f:
         for line in script:
-            f.write(line)
-        f.write(f'sudo ./zerotier-cli join {os.environ["NWID"]}\n')
+            f.write(line)  
+        f.write(f'\nsudo ./zerotier-cli join {os.environ["NWID"]}\n')
         f.write(command_default)
 log.print_general('Script written to prod/martian.sh')
 
