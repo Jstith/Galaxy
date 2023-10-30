@@ -42,7 +42,7 @@ Lokey I think this would work better for pivoting...
 
 - Host root node internally on infected network
 - Pivot to piers (with whatever works) and add them to the network
-- Oh shit can you then tunnel your local connection in with SSH or something to point to that root node?
+- Oh can you then tunnel your local connection in with SSH or something to point to that root node?
 - SSH with an outbound port forward to your ngrok domain (which is proxying your SSH client) and you could probably hand code your machine to look for the root on the infected box... or they can hit the root on your machine. You just need SSH or chisel or another port forwarding tool!
 
 # High Level Layout
